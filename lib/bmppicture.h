@@ -1,0 +1,3 @@
+struct BmpPicture {
+    int a;
+};

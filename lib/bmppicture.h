@@ -80,30 +80,13 @@ struct BmpPicture {
         uint8_t rgbBlue;
         uint8_t rgbRed;
         uint8_t rgbGreen;
-        RGBQUAD (uint8_t b = 255, uint8_t g = 255, uint8_t r = 255) {
+        RGBQUAD (uint8_t r = 255, uint8_t g = 255, uint8_t b = 255) {
             rgbBlue = b;
             rgbGreen = g;
             rgbRed = r;
         }
     };
 
-    // struct ColorTable {
-    //     // 1024 bytes to table, 1 color is 4 byte -> 256 colors
-    //     const RGBQUAD white = {255, 255, 255};
-    //     const RGBQUAD green = {0, 255, 0};
-    //     const RGBQUAD purple = {191, 64, 191};
-    //     const RGBQUAD yellow = {255, 255, 0};
-    //     const RGBQUAD black = {0, 0, 0};
-    //     RGBQUAD Palette[256];
-    //     ColorTable() {
-    //         Palette[0] = white;
-    //         Palette[1] = green;
-    //         Palette[2] = purple;
-    //         Palette[3] = yellow;
-    //     }
-
-    //     friend std::ofstream& operator<< (std::ofstream&, const ColorTable&);
-    // };
 
     struct BitMapArray {
         RGBQUAD** Array;
@@ -112,9 +95,6 @@ struct BmpPicture {
             Array = new RGBQUAD*[height];
             for (int32_t i = 0; i < height; ++i) {
                 Array[i] = new RGBQUAD[width];
-                // for (int32_t j = 0; j < width; ++j) {
-                //     Array[i][j] = {0xFF, 0xFF, 0xFF};
-                // }
             }
         }
     };
@@ -132,7 +112,8 @@ struct BmpPicture {
         ba = *new BitMapArray(height, width);
     }
 
-    void CreateImage(std::filesystem::path, const uint32_t&);
+    void CreateImage(std::filesystem::path);
+    void ChangePixel(const int32_t& x, const int32_t& y, const RGBQUAD& color);
 
 
 };

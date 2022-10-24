@@ -51,7 +51,7 @@ std::ofstream& operator<< (std::ofstream& op, const BmpPicture::BitMapInfoHeader
 }
 
 
-void BmpPicture::CreateImage(std::filesystem::path directory, const uint32_t& iteration) {
+void BmpPicture::CreateImage(std::filesystem::path directory) {
     if (!std::filesystem::exists(directory)) {
         std::cout << "ERROR: no such file or directory\n";
         exit(-1);
@@ -59,7 +59,9 @@ void BmpPicture::CreateImage(std::filesystem::path directory, const uint32_t& it
     const time_t tm = time(nullptr);
     char buf[64];
     strftime(buf, std::size(buf), "_%d_%m_%Y_%H_%M_%S", localtime(&tm));
-    std::string image_name = "image" + std::to_string(iteration) + buf + ".bmp";
+    std::string image_name = "image";
+    image_name += buf;
+    image_name += ".bmp";
     directory.append(image_name);
     std::ofstream image(directory, std::ios::binary);
     std::cout << directory << '\n';
@@ -78,4 +80,8 @@ void BmpPicture::CreateImage(std::filesystem::path directory, const uint32_t& it
 
 
     image.close();
+}
+
+void BmpPicture::ChangePixel(const int32_t& x, const int32_t& y, const BmpPicture::RGBQUAD& color) {
+    ba.Array[x][y] = color;
 }

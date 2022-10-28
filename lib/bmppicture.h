@@ -40,7 +40,7 @@ struct BmpPicture {
             // bfOffsetBits = 310;
             bfOffsetBits = Size() + sizeof(BitMapInfoHeader);
             // std::cout << bfOffsetBits << '\n';
-            bfSize = bfOffsetBits + height * ((width * 3) + (4 - (width * 3) % 4) * ((width * 3) % 4 > 0));
+            bfSize = bfOffsetBits + height * ((width * 3) + ((4 - (width * 3) & 3) & 3));
         }
 
         friend std::ofstream& operator<< (std::ofstream&, const BitMapFileHeader&);
@@ -85,6 +85,12 @@ struct BmpPicture {
             rgbGreen = g;
             rgbRed = r;
         }
+
+        void Upgrade();
+
+        friend bool operator==(BmpPicture::RGBQUAD& a, const BmpPicture::RGBQUAD& b);
+        friend bool operator!=(BmpPicture::RGBQUAD& a, const BmpPicture::RGBQUAD& b);
+        
     };
 
 
@@ -112,8 +118,9 @@ struct BmpPicture {
         ba = *new BitMapArray(height, width);
     }
 
-    void CreateImage(std::filesystem::path);
+    void CreateImage(std::filesystem::path, const uint32_t&);
     void ChangePixel(const int32_t& x, const int32_t& y, const RGBQUAD& color);
+    RGBQUAD GetPixel(const int32_t& x, const int32_t& y);
 
 
 };

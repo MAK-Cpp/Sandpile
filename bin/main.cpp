@@ -1,5 +1,7 @@
 #include "bmppicture.h"
 #include "sandpile.h"
+#include <queue>
+#include <map>
 
 void HelpWithUsage() {
     std::cout << "Usage: Labwork3.exe [-l | --length=<value>] [-w | --width=<value>] [-i | --input=<path/to/file>] [-o | --output=<path/to/directory>] [-m | --max-iter=<value>] [-f | --freq=<value>]";
@@ -22,6 +24,7 @@ void ErrorFile(const std::filesystem::path& path) {
 }
 
 struct Colors {
+    const BmpPicture::RGBQUAD kWhite = {255, 255, 255};
     const BmpPicture::RGBQUAD kGreen = {0, 255, 0};
     const BmpPicture::RGBQUAD kPurple = {255, 0, 255};
     const BmpPicture::RGBQUAD kYellow = {255, 255, 0};
@@ -45,6 +48,60 @@ struct Flags {
         freq = 0;
     }
 };
+
+struct Coordinates {
+    int32_t x;
+    int32_t y;
+    Coordinates (int32_t x = 0, int32_t y = 0) {
+        this->x = x;
+        this->y = y;
+    }
+
+    friend bool operator<(const Coordinates& a, const Coordinates& b);
+}; 
+
+bool operator<(const Coordinates& a, const Coordinates& b) {
+    if (a.x != b.x) {
+        return a.x < b.x;
+    }
+    return a.y < b.y;
+}
+
+struct BigSandpile {
+    Coordinates cd;
+    uint64_t value;
+    BigSandpile(int32_t x, int32_t y, int32_t v) {
+        cd = *new Coordinates(x, y);
+        value = v;
+    }
+
+};
+
+void HeapCollapse(uint16_t x, uint16_t y,std::map <Coordinates, uint32_t>& delta, std::map <Coordinates, uint32_t>& new_delta, BmpPicture& image) {
+    Colors colors;
+    BmpPicture::RGBQUAD pixel = image.GetPixel(x, y);
+    // std::cout << i->first.x << ' ' << i->first.y - 1 << ' ' << (uint16_t)pixel.rgbRed << ' ' << (uint16_t)pixel.rgbGreen << ' ' << (uint16_t)pixel.rgbBlue << '\n';
+    if (pixel != colors.kBlack) {
+        pixel.Upgrade();
+        image.ChangePixel(x, y, pixel);
+        if (pixel == colors.kBlack) {
+            Coordinates* change = new Coordinates(x, y);
+            new_delta[*change] += 4;
+            delete change;
+        }
+    } else {
+        Coordinates* change = new Coordinates(x, y);
+        if (delta[*change] != 0) {
+            delta[*change]++;
+            
+        } else {
+            delta.erase(*change);
+            new_delta[*change]++;
+        }
+        
+        delete change;
+    }
+}
 
 int main(int argc, char* argv[]) {
 
@@ -209,15 +266,130 @@ int main(int argc, char* argv[]) {
     std::cout << flags.width << '\n' << flags.length << '\n' << flags.input << '\n' << flags.output << '\n' << flags.max_iter << '\n' << flags.freq << '\n';
 
     Colors colors;
+    BmpPicture image(flags.width, flags.length);
+
+    std::map <Coordinates, uint32_t> delta;
+    std::ifstream input;
+    input.open(flags.input);
+    uint16_t x, y;
+    uint64_t value;
+    uint64_t cnt_black_pixels = 0;
+    while (input >> x >> y >> value) {
+        std::cout << x << ' ' << y << ' ' << value << '\n';
+        switch (value) {
+          case 0: {
+            break;
+          }
+          case 1: {
+            image.ChangePixel(x, y, colors.kGreen);
+            break;
+          }
+          case 2: {
+            image.ChangePixel(x, y, colors.kPurple);
+            break;
+          }
+          case 3: {
+            image.ChangePixel(x, y, colors.kYellow);
+            break;
+          }
+          default: {
+            image.ChangePixel(x, y, colors.kBlack);
+            Coordinates* change = new Coordinates(x, y);
+            delta[*change] = value;
+            delete change;
+            cnt_black_pixels++;
+            break;
+          }
+        }
+    }
+    input.close();
+
+    image.CreateImage(flags.output, 100);
+
     
 
-    BmpPicture check(flags.width, flags.length);
-    for (int i = 0; i < check.bih.biWidth; i++) {
-        for (int j = check.bih.biHeight / 2 - 100; j <= check.bih.biHeight / 2 + 100; j++) {
-            check.ChangePixel(j, i, colors.kBlack);
+    for (uint64_t i = 1; i <= flags.max_iter; i++) {
+        // std::cout << i << ' ' << delta.size() << '\n';
+        if (delta.empty()) {
+            break;
         }
+        std::map <Coordinates, uint32_t> new_delta;
+        for (std::map <Coordinates, uint32_t>::iterator i = delta.begin(); i != delta.end(); i = delta.begin()) {
+            // std::cout << "DELTA AND NEW DELTA: " << delta.size() << ' ' << new_delta.size() << '\n';
+            // std::cout << i->first.x << ' ' << i->first.y << ' ' << i->second << " -> ";
+            // std::cout << i->second << ", " <<  new_delta[i->first] << " -> ";
+            BmpPicture::RGBQUAD pixel;
+            if (i->first.y - 1 >= 0) {
+                // std::cout << "FIRST IF\n";
+                HeapCollapse(i->first.x, i->first.y - 1, delta, new_delta, image);
+                i->second--;
+            }
+            if (i->first.x - 1 >= 0) {
+                // std::cout << "SECOND IF\n";
+                HeapCollapse(i->first.x - 1, i->first.y, delta, new_delta, image);
+                i->second--;
+            } 
+            if (i->first.y + 1 < image.bih.biWidth) {
+                // std::cout << "THIRD IF\n";
+                HeapCollapse(i->first.x, i->first.y + 1, delta, new_delta, image);
+                i->second--;
+            }
+            if (i->first.x + 1 < image.bih.biHeight) {
+                // std::cout << "FOURTH IF\n";
+                HeapCollapse(i->first.x + 1, i->first.y, delta, new_delta, image);
+                i->second--;
+            }
+            
+            if (i->second >= 4) {
+                new_delta[i->first] += i->second;
+            } else {
+                switch (i->second) {
+                  case 0: {
+                    image.ChangePixel(i->first.x, i->first.y, colors.kWhite);
+                    break;
+                  }
+                  case 1: {
+                    image.ChangePixel(i->first.x, i->first.y, colors.kGreen);
+                    break;
+                  }
+                  case 2: {
+                    image.ChangePixel(i->first.x, i->first.y, colors.kPurple);
+                    break;
+                  }
+                  case 3: {
+                    image.ChangePixel(i->first.x, i->first.y, colors.kYellow);
+                    break;
+                  }
+                  default: {
+                    break;
+                  }
+                
+                }
+                new_delta.erase(i->first);
+            }
+            // std::cout << new_delta[i->first] << '\n';
+            // std::cout << i->second << '\n';
+            delta.erase(i->first);
+            
+        }
+        delta = new_delta;
+        // for (auto i = delta.begin(); i != delta.end(); i++){
+        //     std::cout << i->first.x << ' ' << i->first.y << ' ' << i->second << '\n';
+        // }
+        new_delta.clear();
+
         
+        
+        if (flags.freq != 0 && i % flags.freq == 0) {
+            image.CreateImage(flags.output, i);
+        }
     }
-    // check.CreateImage("C:\\Users\\User\\Desktop\\c++\\ITMO\\BaseOfProgramming\\labwork-3-N4R1CK\\imgs");
+
+   
+    if (flags.freq == 0) {
+        image.CreateImage(flags.output, flags.max_iter);
+    }
+    image.CreateImage(flags.output, 0);
+    
     return 0;
 }

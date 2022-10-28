@@ -91,7 +91,6 @@ void BmpPicture::CreateImage(std::filesystem::path directory, const uint32_t& it
     image_name += ".bmp";
     directory.append(image_name);
     std::ofstream image(directory, std::ios::binary);
-    // std::cout << directory << '\n';
 
     image << bmh;
     image << bih;

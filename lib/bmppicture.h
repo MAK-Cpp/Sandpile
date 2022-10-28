@@ -37,9 +37,7 @@ struct BmpPicture {
             bfType = static_cast<uint16_t>(0x4D42);
             bfReserved1 = 0;
             bfReserved2 = 0;
-            // bfOffsetBits = 310;
             bfOffsetBits = Size() + sizeof(BitMapInfoHeader);
-            // std::cout << bfOffsetBits << '\n';
             bfSize = bfOffsetBits + height * ((width * 3) + ((4 - (width * 3) & 3) & 3));
         }
 

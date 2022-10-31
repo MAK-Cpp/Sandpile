@@ -8,3 +8,4 @@ project(Labwork3 VERSION 1.0.0 LANGUAGES CXX)
 
 add_subdirectory(bin)
 add_subdirectory(lib)
+add_subdirectory(giflib)

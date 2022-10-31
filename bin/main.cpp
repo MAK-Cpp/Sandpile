@@ -1,4 +1,14 @@
+#define GIF
+
+#ifndef GIF
 #include "bmppicture.h"
+#endif
+#include "sandpile.h"
+
+#ifdef GIF
+#include "gif_animation.h"
+#endif
+
 #include <queue>
 #include <map>
 #include <unordered_map>
@@ -23,14 +33,13 @@ void ErrorFile(const std::filesystem::path& path) {
     std::cout << "ERROR: path " << path << " is not a .tsv file";
 }
 
-struct Colors {
+namespace color {
     const BmpPicture::RGBQUAD kWhite = {255, 255, 255};
     const BmpPicture::RGBQUAD kGreen = {0, 255, 0};
     const BmpPicture::RGBQUAD kPurple = {255, 0, 255};
     const BmpPicture::RGBQUAD kYellow = {255, 255, 0};
     const BmpPicture::RGBQUAD kBlack = {0, 0, 0};
-    Colors() = default;
-};
+}
 
 struct Flags {
     uint16_t length;
@@ -50,29 +59,33 @@ struct Flags {
 };
 
 
-void HeapCollapse(uint16_t x, uint16_t y,std::unordered_map <uint64_t, uint32_t>& delta, std::unordered_map <uint64_t, uint32_t>& new_delta, BmpPicture& image) {
-    Colors colors;
+void HeapCollapse(int32_t x, int32_t y, SandPile& sand, std::queue <std::pair <int32_t, int32_t>>& new_changes, BmpPicture& image) {
     BmpPicture::RGBQUAD pixel = image.GetPixel(x, y);
-    if (pixel != colors.kBlack) {
+    if (sand.array[x][y] == nullptr) {
         pixel.Upgrade();
         image.ChangePixel(x, y, pixel);
-        if (pixel == colors.kBlack) {
-            uint64_t coordinates = (static_cast<uint64_t>(x) << 32) + y;
-            new_delta[coordinates] += 4;
+        if (pixel == color::kBlack) {
+            sand.array[x][y] = new uint64_t(4);
+            new_changes.push({x, y});
         }
     } else {
-        uint64_t coordinates = (static_cast<uint64_t>(x) << 32) + y;
-        if (delta[coordinates] != 0) {
-            delta[coordinates]++;
-            
-        } else {
-            delta.erase(coordinates);
-            new_delta[coordinates]++;
-        }   
+        (*sand.array[x][y])++;
     }
 }
 
 int main(int argc, char* argv[]) {
+
+    // FILE* f;
+    // std::filesystem::path pa = "./imgs/res.gif";
+    // char str[pa.string().size()];
+    // for (int i = 0; i < pa.string().size(); ++i) {
+    //     // std::cout << pa.string()[i] << ' ';
+    //     str[i] = pa.string()[i];
+    // }
+    // f = fopen(str, "wb");
+    
+
+    // return 0;
 
     if (argc < 2) {
         HelpWithUsage();
@@ -80,6 +93,7 @@ int main(int argc, char* argv[]) {
     }
 
     Flags flags;
+    
 
 
     for (uint16_t i = 1; i < argc; ++i) {
@@ -233,89 +247,97 @@ int main(int argc, char* argv[]) {
         }
     }
 
-    Colors colors;
+    #ifdef GIF
+    GifFile result(flags.output, flags.width, flags.length);
+    #endif
+
     BmpPicture image(flags.width, flags.length);
 
-    std::unordered_map <uint64_t, uint32_t> delta;
-    // координаты теперь будут храниться по 32 бита на каждую -> 64 бита всего
+    SandPile sand(flags.width, flags.length);
+
     std::ifstream input;
     input.open(flags.input);
     uint16_t x, y;
     uint64_t value;
-    uint64_t cnt_black_pixels = 0;
+    std::queue <std::pair <int32_t, int32_t>> blacks_to_change;
     while (input >> x >> y >> value) {
+        x--;
+        y--;
         switch (value) {
           case 0: {
             break;
           }
           case 1: {
-            image.ChangePixel(x, y, colors.kGreen);
+            image.ChangePixel(x, y, color::kGreen);
             break;
           }
           case 2: {
-            image.ChangePixel(x, y, colors.kPurple);
+            image.ChangePixel(x, y, color::kPurple);
             break;
           }
           case 3: {
-            image.ChangePixel(x, y, colors.kYellow);
+            image.ChangePixel(x, y, color::kYellow);
             break;
           }
           default: {
-            uint64_t coordinates = (static_cast<uint64_t>(x) << 32) + y;
-            image.ChangePixel(x, y, colors.kBlack);
-            delta[coordinates] = value;
-            cnt_black_pixels++;
+            image.ChangePixel(x, y, color::kBlack);
+            sand.array[x][y] = new uint64_t(value);
+            blacks_to_change.push({x, y});
             break;
           }
         }
     }
     input.close();
+    #ifdef GIF
+    result.WriteFrame(image.ba);
+    #endif
 
 
     for (uint64_t i = 1; i <= flags.max_iter; i++) {
-        if (delta.empty()) {
+        if (blacks_to_change.empty()) {
             break;
         }
-        std::unordered_map <uint64_t, uint32_t> new_delta;
-        for (std::unordered_map <uint64_t, uint32_t>::iterator i = delta.begin(); i != delta.end(); i = delta.begin()) {
+        std::queue <std::pair <int32_t, int32_t>> new_changes;
+        while (!blacks_to_change.empty()) {
             BmpPicture::RGBQUAD pixel;
-            int32_t y = static_cast<int32_t>(i->first);
-            int32_t x = static_cast<int32_t>(i->first >> 32);
+            int32_t y = blacks_to_change.front().second;
+            int32_t x = blacks_to_change.front().first;
+            blacks_to_change.pop();
             if (y - 1 >= 0) {
-                HeapCollapse(x, y - 1, delta, new_delta, image);
-                i->second--;
+                HeapCollapse(x, y - 1, sand, new_changes, image);
+                (*sand.array[x][y])--;
             }
             if (x - 1 >= 0) {
-                HeapCollapse(x - 1, y, delta, new_delta, image);
-                i->second--;
+                HeapCollapse(x - 1, y, sand, new_changes, image);
+                (*sand.array[x][y])--;
             } 
             if (y + 1 < image.bih.biWidth) {
-                HeapCollapse(x, y + 1, delta, new_delta, image);
-                i->second--;
+                HeapCollapse(x, y + 1, sand, new_changes, image);
+                (*sand.array[x][y])--;
             }
             if (x + 1 < image.bih.biHeight) {
-                HeapCollapse(x + 1, y, delta, new_delta, image);
-                i->second--;
+                HeapCollapse(x + 1, y, sand, new_changes, image);
+                (*sand.array[x][y])--;
             }
             
-            if (i->second >= 4) {
-                new_delta[i->first] += i->second;
+            if ((*sand.array[x][y]) >= 4) {
+                new_changes.push({x, y});
             } else {
-                switch (i->second) {
+                switch ((*sand.array[x][y])) {
                 case 0: {
-                    image.ChangePixel(x, y, colors.kWhite);
+                    image.ChangePixel(x, y, color::kWhite);
                     break;
                 }
                 case 1: {
-                    image.ChangePixel(x, y, colors.kGreen);
+                    image.ChangePixel(x, y, color::kGreen);
                     break;
                 }
                 case 2: {
-                    image.ChangePixel(x, y, colors.kPurple);
+                    image.ChangePixel(x, y, color::kPurple);
                     break;
                 }
                 case 3: {
-                    image.ChangePixel(x, y, colors.kYellow);
+                    image.ChangePixel(x, y, color::kYellow);
                     break;
                 }
                 default: {
@@ -323,24 +345,36 @@ int main(int argc, char* argv[]) {
                 }
                 
                 }
-                new_delta.erase(i->first);
+                delete sand.array[x][y];
+                sand.array[x][y] = nullptr;
             }
-            delta.erase(i->first);
         }
-        delta = new_delta;
-        new_delta.clear();
+        blacks_to_change = new_changes;
 
         
         
         if (flags.freq != 0 && i % flags.freq == 0) {
             image.CreateImage(flags.output, i);
+            #ifdef GIF
+            result.WriteFrame(image.ba);
+            #endif
         }
     }
 
    
     if (flags.freq == 0) {
         image.CreateImage(flags.output, flags.max_iter);
+        #ifdef GIF
+        result.WriteFrame(image.ba);
+        #endif
     }
     
+    image.CreateImage(flags.output, 0);
+    #ifdef GIF
+    result.WriteFrame(image.ba);
+    #endif
+    #ifdef GIF
+    result.End();
+    #endif
     return 0;
 }

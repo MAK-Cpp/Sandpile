@@ -14,7 +14,13 @@
 #include <unordered_map>
 
 void HelpWithUsage() {
-    std::cout << "Usage: Labwork3.exe [-l | --length=<value>] [-w | --width=<value>] [-i | --input=<path/to/file>] [-o | --output=<path/to/directory>] [-m | --max-iter=<value>] [-f | --freq=<value>]";
+    std::cout << "Usage: Labwork3.exe \n"
+    << "[-l | --length=<value>]\n"
+    << "[-w | --width=<value>]\n"
+    << "[-i | --input=<path/to/file>]\n"
+    << "[-o | --output=<path/to/directory>]\n"
+    << "[-m | --max-iter=<value>]\n"
+    << "[-f | --freq=<value>]";
 }
 
 void ErrorFlag(const std::string& name) {
@@ -75,15 +81,9 @@ void HeapCollapse(int32_t x, int32_t y, SandPile& sand, std::queue <std::pair <i
 
 int main(int argc, char* argv[]) {
 
-    // FILE* f;
-    // std::filesystem::path pa = "./imgs/res.gif";
-    // char str[pa.string().size()];
-    // for (int i = 0; i < pa.string().size(); ++i) {
-    //     // std::cout << pa.string()[i] << ' ';
-    //     str[i] = pa.string()[i];
-    // }
-    // f = fopen(str, "wb");
-    
+    // char* chis = "123454321";
+
+    // std::cout << std::stoll(chis + 5);
 
     // return 0;
 
@@ -107,21 +107,14 @@ int main(int argc, char* argv[]) {
             ErrorFlag(flag_name);
             return -1;
         } 
+        std::cout << arg << '\n';
         if (flag_name[1] == '-') {
             if (flag_name == "--length") {
-                uint16_t value = 0;
                 j++;
-                for (; arg[j] != '\0'; j++) {
-                    value = value * 10 + (arg[j] - '0');
-                }
-                flags.length = value;
+                flags.length = std::stoi(argv[i] + j);
             } else if (flag_name == "--width") {
-                uint16_t value = 0;
                 j++;
-                for (; arg[j] != '\0'; j++) {
-                    value = value * 10 + (arg[j] - '0');
-                }
-                flags.width = value;
+                flags.width = std::stoi(argv[i] + j);
             } else if (flag_name == "--input") {
                 std::string path = "";
                 j++;
@@ -151,19 +144,11 @@ int main(int argc, char* argv[]) {
                 }
                 flags.output = path;
             } else if (flag_name == "--max-iter") {
-                uint64_t value = 0;
                 j++;
-                for (; arg[j] != '\0'; j++) {
-                    value = value * 10 + (arg[j] - '0');
-                }
-                flags.max_iter = value;
+                flags.max_iter = std::stoull(argv[i] + j);
             } else if (flag_name == "--freq") {
-                uint64_t value = 0;
                 j++;
-                for (; arg[j] != '\0'; j++) {
-                    value = value * 10 + (arg[j] - '0');
-                }
-                flags.freq = value;
+                flags.freq = std::stoull(argv[i] + j);
             } else {
                 ErrorFlag(flag_name);
                 return -1;
@@ -171,21 +156,13 @@ int main(int argc, char* argv[]) {
         } else {
             switch (flag_name[1]) {
               case 'l': {
-                uint16_t value = 0;
                 j++;
-                for (; arg[j] != '\0'; j++) {
-                    value = value * 10 + (arg[j] - '0');
-                }
-                flags.length = value;
+                flags.length = std::stoi(argv[i] + j);
                 break;
               }
               case 'w': {
-                uint16_t value = 0;
                 j++;
-                for (; arg[j] != '\0'; j++) {
-                    value = value * 10 + (arg[j] - '0');
-                }
-                flags.width = value;
+                flags.width = std::stoi(argv[i] + j);
                 break;
               }
               case 'i': {
@@ -221,21 +198,14 @@ int main(int argc, char* argv[]) {
                 break;
               }
               case 'm': {
-                uint64_t value = 0;
                 j++;
-                for (; arg[j] != '\0'; j++) {
-                    value = value * 10 + (arg[j] - '0');
-                }
-                flags.max_iter = value;
+                std::cout << argv[i] + j << '\n';
+                flags.max_iter = std::stoull(argv[i] + j);
                 break;
               }
               case 'f': {
-                uint64_t value = 0;
                 j++;
-                for (; arg[j] != '\0'; j++) {
-                    value = value * 10 + (arg[j] - '0');
-                }
-                flags.freq = value;
+                flags.freq = std::stoull(argv[i] + j);
                 break;
               }
               default: {
@@ -246,6 +216,8 @@ int main(int argc, char* argv[]) {
             }
         }
     }
+
+    std::cout << flags.width << '\n' << flags.length << '\n' << flags.input << '\n' << flags.output << '\n' << flags.max_iter << '\n' << flags.freq << '\n';
 
     #ifdef GIF
     GifFile result(flags.output, flags.width, flags.length);

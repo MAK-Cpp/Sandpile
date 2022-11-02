@@ -80,13 +80,6 @@ void HeapCollapse(int32_t x, int32_t y, SandPile& sand, std::queue <std::pair <i
 }
 
 int main(int argc, char* argv[]) {
-
-    // char* chis = "123454321";
-
-    // std::cout << std::stoll(chis + 5);
-
-    // return 0;
-
     if (argc < 2) {
         HelpWithUsage();
         return 0;
@@ -217,7 +210,6 @@ int main(int argc, char* argv[]) {
         }
     }
 
-    std::cout << flags.width << '\n' << flags.length << '\n' << flags.input << '\n' << flags.output << '\n' << flags.max_iter << '\n' << flags.freq << '\n';
 
     #ifdef GIF
     GifFile result(flags.output, flags.width, flags.length);

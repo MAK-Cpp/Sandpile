@@ -8,7 +8,7 @@
 struct GifFile {
     GifWriter g;
     int32_t height, width, delay;
-    GifFile(std::filesystem::path output, const int32_t& width = 1920, const int32_t& height = 1080, const int32_t delay = 10) {
+    GifFile(std::filesystem::path output, const int32_t width = 1920, const int32_t height = 1080, const int32_t delay = 6) {
         std::string name_gif = "result.gif";
         this->height = height;
         this->width = width;

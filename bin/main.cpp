@@ -39,7 +39,7 @@ void ErrorFile(const std::filesystem::path& path) {
     std::cout << "ERROR: path " << path << " is not a .tsv file";
 }
 
-namespace color {
+namespace const_color {
     const BmpPicture::RGBQUAD kWhite = {255, 255, 255};
     const BmpPicture::RGBQUAD kGreen = {0, 255, 0};
     const BmpPicture::RGBQUAD kPurple = {255, 0, 255};
@@ -70,7 +70,7 @@ void HeapCollapse(int32_t x, int32_t y, SandPile& sand, std::queue <std::pair <i
     if (sand.array[x][y] == nullptr) {
         pixel.Upgrade();
         image.ChangePixel(x, y, pixel);
-        if (pixel == color::kBlack) {
+        if (pixel == const_color::kBlack) {
             sand.array[x][y] = new uint64_t(4);
             new_changes.push({x, y});
         }
@@ -100,7 +100,6 @@ int main(int argc, char* argv[]) {
             ErrorFlag(flag_name);
             return -1;
         } 
-        std::cout << arg << '\n';
         if (flag_name[1] == '-') {
             if (flag_name == "--length") {
                 j++;
@@ -192,7 +191,6 @@ int main(int argc, char* argv[]) {
               }
               case 'm': {
                 j++;
-                std::cout << argv[i] + j << '\n';
                 flags.max_iter = std::stoull(argv[i] + j);
                 break;
               }
@@ -232,19 +230,19 @@ int main(int argc, char* argv[]) {
             break;
           }
           case 1: {
-            image.ChangePixel(x, y, color::kGreen);
+            image.ChangePixel(x, y, const_color::kGreen);
             break;
           }
           case 2: {
-            image.ChangePixel(x, y, color::kPurple);
+            image.ChangePixel(x, y, const_color::kPurple);
             break;
           }
           case 3: {
-            image.ChangePixel(x, y, color::kYellow);
+            image.ChangePixel(x, y, const_color::kYellow);
             break;
           }
           default: {
-            image.ChangePixel(x, y, color::kBlack);
+            image.ChangePixel(x, y, const_color::kBlack);
             sand.array[x][y] = new uint64_t(value);
             blacks_to_change.push({x, y});
             break;
@@ -258,7 +256,7 @@ int main(int argc, char* argv[]) {
 
 
     for (uint64_t i = 1; i <= flags.max_iter; i++) {
-        if (blacks_to_change.empty()) {
+        if (blacks_to_change.empty() || blacks_to_change.size() == flags.length * flags.width) {
             break;
         }
         std::queue <std::pair <int32_t, int32_t>> new_changes;
@@ -289,19 +287,19 @@ int main(int argc, char* argv[]) {
             } else {
                 switch ((*sand.array[x][y])) {
                 case 0: {
-                    image.ChangePixel(x, y, color::kWhite);
+                    image.ChangePixel(x, y, const_color::kWhite);
                     break;
                 }
                 case 1: {
-                    image.ChangePixel(x, y, color::kGreen);
+                    image.ChangePixel(x, y, const_color::kGreen);
                     break;
                 }
                 case 2: {
-                    image.ChangePixel(x, y, color::kPurple);
+                    image.ChangePixel(x, y, const_color::kPurple);
                     break;
                 }
                 case 3: {
-                    image.ChangePixel(x, y, color::kYellow);
+                    image.ChangePixel(x, y, const_color::kYellow);
                     break;
                 }
                 default: {
@@ -319,18 +317,17 @@ int main(int argc, char* argv[]) {
         
         if (flags.freq != 0 && i % flags.freq == 0) {
             image.CreateImage(flags.output, i);
-            #ifdef GIF
-            result.WriteFrame(image.ba);
-            #endif
         }
+        #ifdef GIF
+        if (flags.freq != 0 && i % 1000 == 0) {
+            result.WriteFrame(image.ba);
+        }
+        #endif
     }
 
    
     if (flags.freq == 0) {
         image.CreateImage(flags.output, flags.max_iter);
-        #ifdef GIF
-        result.WriteFrame(image.ba);
-        #endif
     }
     
     image.CreateImage(flags.output, 0);
